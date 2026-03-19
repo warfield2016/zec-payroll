@@ -1,0 +1,79 @@
+<%- include('header') %>
+
+<h1>Dashboard</h1>
+
+<div class="stats">
+  <div class="stat-card">
+    <span class="stat-value"><%= data.recipients.length %></span>
+    <span class="stat-label">Recipients</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-value"><%= data.batches.filter(b => b.status === 'sent').length %></span>
+    <span class="stat-label">Batches Sent</span>
+  </div>
+  <div class="stat-card">
+    <% if (nextDays !== null) { %>
+      <span class="stat-value <%= nextDays < 0 ? 'overdue' : '' %>">
+        <% if (nextDays < 0) { %>
+          Overdue by <%= Math.abs(nextDays) %>d
+        <% } else if (nextDays === 0) { %>
+          Today
+        <% } else { %>
+          In <%= nextDays %>d
+        <% } %>
+      </span>
+    <% } else { %>
+      <span class="stat-value">Not set</span>
+    <% } %>
+    <span class="stat-label">Next Payout</span>
+  </div>
+</div>
+
+<% if (data.recipients.length > 0) { %>
+  <div class="action-bar">
+    <a href="/batch/new" class="btn">New Payout Batch</a>
+    <a href="/batch/test" class="btn btn-secondary">Test Batch (0.001 ZEC)</a>
+  </div>
+<% } else { %>
+  <div class="msg msg-info">
+    Add recipients to get started.
+    <a href="/recipients">Add manually</a> or <a href="/import">import a CSV</a>.
+  </div>
+<% } %>
+
+<% if (data.batches.length > 0) { %>
+  <h2>Recent Batches</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Recipients</th>
+        <th>Total ZEC</th>
+        <th>Type</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% for (const b of data.batches.slice(0, 10)) { %>
+        <tr>
+          <td><%= new Date(b.createdAt).toLocaleDateString() %></td>
+          <td><%= b.recipientCount %></td>
+          <td class="sensitive"><%= Number(b.totalZec).toFixed(4) %></td>
+          <td><%= b.isTest ? 'Test' : 'Full' %></td>
+          <td>
+            <% if (b.status === 'sent') { %>
+              <span class="badge badge-sent">Sent</span>
+            <% } else { %>
+              <span class="badge badge-pending">Pending</span>
+              <form method="POST" action="/batch/<%= b.id %>/mark-sent" style="display:inline">
+                <button type="submit" class="btn-small" onclick="return confirm('Mark this batch as sent?')">Mark Sent</button>
+              </form>
+            <% } %>
+          </td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
+<% } %>
+
+<%- include('footer') %>

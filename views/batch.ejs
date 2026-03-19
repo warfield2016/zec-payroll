@@ -1,0 +1,55 @@
+<%- include('header') %>
+
+<h1><%= typeof isTest !== 'undefined' && isTest ? 'Test Batch (0.001 ZEC each)' : 'New Payout Batch' %></h1>
+
+<% if (error) { %>
+  <div class="msg msg-error"><%= error %></div>
+<% } %>
+
+<% if (preview) { %>
+  <% if (priceInfo && priceInfo.price) { %>
+    <div class="price-bar">
+      ZEC/USD: $<%= priceInfo.price.toFixed(2) %>
+      <% if (priceInfo.stale) { %><span class="stale-warn">(stale)</span><% } %>
+    </div>
+  <% } %>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Address</th>
+        <% if (!isTest) { %><th>Original</th><% } %>
+        <th>ZEC Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% for (const r of preview) { %>
+        <tr>
+          <td class="sensitive"><%= r.name %></td>
+          <td class="addr" title="<%= r.address %>"><%= r.address.slice(0, 16) %>...<%= r.address.slice(-8) %></td>
+          <% if (!isTest) { %>
+            <td class="sensitive"><%= r.amount %> <%= r.currency %></td>
+          <% } %>
+          <td class="sensitive"><%= r.zecAmount.toFixed(8).replace(/\.?0+$/, '') %> ZEC</td>
+        </tr>
+      <% } %>
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="<%= isTest ? 2 : 3 %>"><strong>Total</strong></td>
+        <td><strong><%= totalZec.toFixed(8).replace(/\.?0+$/, '') %> ZEC</strong>
+          <% if (totalUsd) { %><br>($<%= totalUsd.toFixed(2) %> USD)<% } %>
+        </td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <form method="POST" action="/batch/generate">
+    <input type="hidden" name="isTest" value="<%= isTest %>">
+    <input type="hidden" name="payments" value="<%= JSON.stringify(preview.map(r => ({ address: r.address, amount: r.zecAmount, label: r.name }))) %>">
+    <button type="submit" class="btn btn-generate">Generate ZIP-321 Payment URI</button>
+  </form>
+<% } %>
+
+<%- include('footer') %>

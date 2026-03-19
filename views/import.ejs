@@ -1,0 +1,52 @@
+<%- include('header') %>
+
+<h1>Import CSV</h1>
+
+<div class="import-info">
+  <p>Upload a CSV with columns: <code>name</code>, <code>wallet_address</code>, <code>amount</code>, <code>currency</code></p>
+  <p>Currency should be <code>USD</code> or <code>ZEC</code>. Only shielded addresses (<code>zs1...</code> or <code>u1...</code>) are accepted.</p>
+</div>
+
+<form method="POST" action="/import" enctype="multipart/form-data" class="import-form">
+  <input type="file" name="csv" accept=".csv" required>
+  <button type="submit">Upload</button>
+</form>
+
+<% if (result) { %>
+  <% if (result.errors.length > 0) { %>
+    <div class="msg msg-error">
+      <strong><%= result.errors.length %> error(s):</strong>
+      <ul>
+        <% for (const e of result.errors) { %>
+          <li>Row <%= e.row %>: <%= e.message %></li>
+        <% } %>
+      </ul>
+    </div>
+  <% } %>
+
+  <% if (result.valid.length > 0) { %>
+    <h2><%= result.valid.length %> valid recipients</h2>
+    <table>
+      <thead>
+        <tr><th>Name</th><th>Address</th><th>Amount</th><th>Currency</th></tr>
+      </thead>
+      <tbody>
+        <% for (const r of result.valid) { %>
+          <tr>
+            <td><%= r.name %></td>
+            <td class="addr" title="<%= r.address %>"><%= r.address.slice(0, 16) %>...<%= r.address.slice(-8) %></td>
+            <td><%= r.amount %></td>
+            <td><%= r.currency %></td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+
+    <form method="POST" action="/import/confirm">
+      <input type="hidden" name="recipients" value="<%= JSON.stringify(result.valid) %>">
+      <button type="submit" class="btn">Confirm Import</button>
+    </form>
+  <% } %>
+<% } %>
+
+<%- include('footer') %>

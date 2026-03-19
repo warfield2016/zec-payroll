@@ -1,0 +1,53 @@
+<%- include('header') %>
+
+<h1>Recipients</h1>
+
+<% if (error) { %>
+  <div class="msg msg-error"><%= error %></div>
+<% } %>
+
+<form method="POST" action="/recipients" class="add-form">
+  <div class="form-row">
+    <input type="text" name="name" placeholder="Name" required>
+    <input type="text" name="address" placeholder="Shielded address (zs1... or u1...)" required>
+    <input type="number" name="amount" placeholder="Amount" step="any" min="0.00000001" required>
+    <select name="currency">
+      <option value="USD">USD</option>
+      <option value="ZEC">ZEC</option>
+    </select>
+    <button type="submit">Add</button>
+  </div>
+</form>
+
+<% if (data.recipients.length === 0) { %>
+  <div class="msg msg-info">No recipients yet. Add one above or <a href="/import">import a CSV</a>.</div>
+<% } else { %>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Address</th>
+        <th>Amount</th>
+        <th>Currency</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% for (const r of data.recipients) { %>
+        <tr>
+          <td class="sensitive"><%= r.name %></td>
+          <td class="addr" title="<%= r.address %>"><%= r.address.slice(0, 16) %>...<%= r.address.slice(-8) %></td>
+          <td class="sensitive"><%= r.amount %></td>
+          <td><%= r.currency %></td>
+          <td>
+            <form method="POST" action="/recipients/<%= r.id %>/delete" style="display:inline">
+              <button type="submit" class="btn-delete" onclick="return confirm('Remove this recipient?')">Remove</button>
+            </form>
+          </td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
+<% } %>
+
+<%- include('footer') %>

@@ -1,0 +1,19 @@
+{
+  "name": "zec-payroll",
+  "version": "1.0.0",
+  "description": "Shielded ZEC payroll with ZIP-321 multi-payment URIs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test:zip321": "node lib/zip321.js",
+    "test:encryption": "node lib/encryption.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "csv-parse": "^6.2.0",
+    "ejs": "^5.0.1",
+    "express": "^5.2.1",
+    "multer": "^2.1.1",
+    "qrcode": "^1.5.4"
+  }
+}

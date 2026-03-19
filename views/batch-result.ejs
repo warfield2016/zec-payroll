@@ -1,0 +1,44 @@
+<%- include('header') %>
+
+<h1>Payment URI Generated</h1>
+
+<div class="batch-info">
+  <span><%= batchRecord.recipientCount %> recipients</span>
+  <span class="sensitive"><%= batchRecord.totalZec.toFixed(8).replace(/\.?0+$/, '') %> ZEC</span>
+  <% if (batchRecord.isTest) { %><span class="badge badge-test">Test</span><% } %>
+  <% if (qrCodes.length > 1) { %><span><%= qrCodes.length %> QR codes</span><% } %>
+</div>
+
+<% for (let i = 0; i < qrCodes.length; i++) { %>
+  <div class="qr-section">
+    <% if (qrCodes.length > 1) { %>
+      <h2>Batch <%= i + 1 %> of <%= qrCodes.length %></h2>
+    <% } %>
+
+    <div class="qr-container">
+      <img src="<%= qrCodes[i] %>" alt="ZIP-321 Payment QR Code" class="qr-img">
+      <div class="shield-overlay">
+        <div class="shield-overlay-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <p class="qr-hint">Scan with Zodl to sign and broadcast.</p>
+
+    <div class="uri-section">
+      <label>ZIP-321 URI</label>
+      <textarea readonly class="uri-text" id="uri-<%= i %>"><%= rawURIs[i] %></textarea>
+      <button class="btn btn-secondary btn-small copy-btn" data-target="uri-<%= i %>">Copy URI</button>
+    </div>
+  </div>
+<% } %>
+
+<div class="action-bar">
+  <form method="POST" action="/batch/<%= batchRecord.id %>/mark-sent" style="display:inline">
+    <button type="submit" class="btn" onclick="return confirm('Mark this batch as sent? This updates the payout schedule.')">Mark as Sent</button>
+  </form>
+  <a href="/" class="btn btn-secondary">Back to Dashboard</a>
+</div>
+
+<%- include('footer') %>

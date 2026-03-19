@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZEC Payroll</title>
+  <link rel="stylesheet" href="/style.css">
+  <script>
+    // Prevent flash of wrong theme
+    (function() {
+      var t = localStorage.getItem('zec-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+</head>
+<body>
+  <div class="shield-banner">Privacy shield active</div>
+  <nav>
+    <a href="/" class="logo">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px;opacity:0.8">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>ZEC Payroll</a>
+    <div class="nav-links">
+      <a href="/" class="<%= page === 'dashboard' ? 'active' : '' %>">Dashboard</a>
+      <a href="/recipients" class="<%= page === 'recipients' ? 'active' : '' %>">Recipients</a>
+      <a href="/import" class="<%= page === 'import' ? 'active' : '' %>">Import</a>
+      <a href="/batch/new" class="<%= page === 'batch' ? 'active' : '' %>">New Batch</a>
+
+      <span class="nav-separator"></span>
+
+      <button id="shield-toggle" class="nav-icon-btn" title="Toggle privacy shield">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </button>
+
+      <button id="theme-toggle" class="nav-icon-btn" title="Toggle theme">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      </button>
+
+      <a href="/lock" class="nav-icon-btn lock-link" title="Lock and sign out">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+        </svg>
+      </a>
+    </div>
+  </nav>
+  <main>
