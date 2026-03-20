@@ -8,6 +8,9 @@
     "test:zip321": "node lib/zip321.js",
     "test:encryption": "node lib/encryption.js"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "license": "MIT",
   "dependencies": {
     "csv-parse": "^6.2.0",
