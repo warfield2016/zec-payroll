@@ -43,7 +43,7 @@
     </table>
 
     <form method="POST" action="/import/confirm">
-      <input type="hidden" name="recipients" value="<%= JSON.stringify(result.valid) %>">
+      <input type="hidden" name="recipients" value="<%- encodeURIComponent(JSON.stringify(result.valid)) %>">
       <button type="submit" class="btn">Confirm Import</button>
     </form>
   <% } %>

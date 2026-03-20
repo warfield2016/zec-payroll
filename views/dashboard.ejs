@@ -12,6 +12,14 @@
     <span class="stat-label">Batches Sent</span>
   </div>
   <div class="stat-card">
+    <% if (zecPrice) { %>
+      <span class="stat-value">$<%= zecPrice.toFixed(2) %></span>
+    <% } else { %>
+      <span class="stat-value">--</span>
+    <% } %>
+    <span class="stat-label">ZEC / USD</span>
+  </div>
+  <div class="stat-card">
     <% if (nextDays !== null) { %>
       <span class="stat-value <%= nextDays < 0 ? 'overdue' : '' %>">
         <% if (nextDays < 0) { %>

@@ -1,0 +1,45 @@
+<%- include('header') %>
+
+<h1>Settings</h1>
+
+<% if (success) { %>
+  <div class="msg msg-info"><%= success %></div>
+<% } %>
+<% if (error) { %>
+  <div class="msg msg-error"><%= error %></div>
+<% } %>
+
+<h2>Telegram Notifications</h2>
+<div class="import-info">
+  <p>Get notified when batches are sent and when payouts are coming up.</p>
+  <p>1. Message <code>@BotFather</code> on Telegram, create a bot, copy the token.</p>
+  <p>2. Send any message to your bot, then visit <code>https://api.telegram.org/bot{TOKEN}/getUpdates</code> to find your chat ID.</p>
+</div>
+
+<form method="POST" action="/settings/telegram">
+  <div class="form-row">
+    <input type="password" name="botToken" placeholder="<%= telegram.botToken ? 'Token saved (enter new to replace)' : 'Bot token' %>" style="flex:2;min-width:220px">
+    <input type="text" name="chatId" placeholder="Chat ID" value="<%= telegram.chatId || '' %>" style="flex:1;min-width:100px">
+    <button type="submit">Save</button>
+  </div>
+</form>
+
+<% if (telegram.botToken && telegram.chatId) { %>
+  <form method="POST" action="/settings/telegram/test" style="margin-top:0.5rem">
+    <button type="submit" class="btn btn-secondary btn-small">Send Test Message</button>
+  </form>
+<% } %>
+
+<h2>Payout Schedule</h2>
+<form method="POST" action="/settings/schedule">
+  <div class="form-row">
+    <select name="frequency" style="width:180px">
+      <option value="biweekly" <%= schedule.frequency === 'biweekly' ? 'selected' : '' %>>Every 2 weeks</option>
+      <option value="weekly" <%= schedule.frequency === 'weekly' ? 'selected' : '' %>>Weekly</option>
+      <option value="monthly" <%= schedule.frequency === 'monthly' ? 'selected' : '' %>>Monthly</option>
+    </select>
+    <button type="submit">Update</button>
+  </div>
+</form>
+
+<%- include('footer') %>

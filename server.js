@@ -9,19 +9,27 @@ const { encrypt, decrypt } = require('./lib/encryption');
 const { buildURI, splitIntoBatches, estimateURILength, validateAddress, formatAmount } = require('./lib/zip321');
 const { getZECPrice, usdToZec } = require('./lib/price');
 const { parseCSV } = require('./lib/csv');
+const { notifyBatchSent, notifyUpcomingPayout, testConnection } = require('./lib/telegram');
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 1_000_000 } });
 
-const DATA_FILE = path.join(__dirname, 'data', 'payroll.enc');
+const DATA_DIR = path.join(__dirname, 'data');
+const DATA_FILE = path.join(DATA_DIR, 'payroll.enc');
 const PORT = process.env.PORT || 3001;
 const MAX_NAME_LENGTH = 256;
+
+// Ensure data directory exists on startup
+fs.mkdirSync(DATA_DIR, { recursive: true });
 
 // Session state (single-user app)
 let sessionPassphrase = null;
 
 // In-memory data cache to prevent race conditions
 let cachedData = null;
+
+// Track whether we already sent a reminder this session to avoid spamming
+let reminderSentForDate = null;
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -35,6 +43,7 @@ function emptyData() {
     recipients: [],
     batches: [],
     schedule: { frequency: 'biweekly', lastPayout: null, nextPayout: null },
+    telegram: { botToken: null, chatId: null },
   };
 }
 
@@ -50,6 +59,8 @@ function loadData() {
   try {
     const raw = fs.readFileSync(DATA_FILE, 'utf8');
     cachedData = JSON.parse(decrypt(raw, sessionPassphrase));
+    // Ensure telegram field exists for older data files
+    if (!cachedData.telegram) cachedData.telegram = { botToken: null, chatId: null };
     return cachedData;
   } catch (e) {
     cachedData = null;
@@ -83,7 +94,6 @@ function daysUntil(dateStr) {
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
 }
 
-// Validate a single recipient object (reused in import/confirm and batch/generate)
 function validateRecipient(r) {
   if (!r.name || typeof r.name !== 'string' || r.name.trim().length === 0) {
     return 'Missing name';
@@ -106,7 +116,6 @@ function validateRecipient(r) {
   return null;
 }
 
-// Validate a payment object for batch generation
 function validatePayment(p) {
   try {
     validateAddress(p.address);
@@ -118,6 +127,24 @@ function validatePayment(p) {
     return 'Invalid amount';
   }
   return null;
+}
+
+// Check if a payout reminder should fire (within 2 days)
+async function checkPayoutReminder(data) {
+  const days = daysUntil(data.schedule.nextPayout);
+  if (days === null || days > 2 || days < 0) return;
+  if (!data.telegram.botToken || !data.telegram.chatId) return;
+
+  const todayKey = new Date().toISOString().slice(0, 10);
+  if (reminderSentForDate === todayKey) return;
+
+  const result = await notifyUpcomingPayout(
+    data.telegram.botToken,
+    data.telegram.chatId,
+    days,
+    data.recipients.length
+  );
+  if (result.ok) reminderSentForDate = todayKey;
 }
 
 // --- Routes ---
@@ -153,12 +180,24 @@ app.get('/lock', (req, res) => {
   res.redirect('/unlock');
 });
 
-app.get('/', requireAuth, (req, res) => {
+app.get('/', requireAuth, async (req, res) => {
   const data = loadData();
   const nextDays = daysUntil(data.schedule.nextPayout);
+
+  // Fetch ZEC price for the dashboard ticker
+  let zecPrice = null;
+  try {
+    const priceInfo = await getZECPrice();
+    zecPrice = priceInfo.price;
+  } catch { /* price unavailable, show without it */ }
+
+  // Fire reminder check in background (don't block the page)
+  checkPayoutReminder(data).catch(() => {});
+
   res.render('dashboard', {
     data,
     nextDays,
+    zecPrice,
     page: 'dashboard',
   });
 });
@@ -232,7 +271,7 @@ app.post('/import/confirm', requireAuth, (req, res) => {
   const { recipients: jsonStr } = req.body;
   let imported;
   try {
-    imported = JSON.parse(jsonStr);
+    imported = JSON.parse(decodeURIComponent(jsonStr));
   } catch {
     return res.redirect('/import');
   }
@@ -342,7 +381,7 @@ app.post('/batch/generate', requireAuth, async (req, res) => {
   const { payments: jsonStr, isTest } = req.body;
   let payments;
   try {
-    payments = JSON.parse(jsonStr);
+    payments = JSON.parse(decodeURIComponent(jsonStr));
   } catch {
     return res.redirect('/batch/new');
   }
@@ -407,7 +446,7 @@ app.post('/batch/generate', requireAuth, async (req, res) => {
   });
 });
 
-app.post('/batch/:id/mark-sent', requireAuth, (req, res) => {
+app.post('/batch/:id/mark-sent', requireAuth, async (req, res) => {
   const data = loadData();
   const batch = data.batches.find((b) => b.id === req.params.id);
   if (batch) {
@@ -415,11 +454,98 @@ app.post('/batch/:id/mark-sent', requireAuth, (req, res) => {
     const now = new Date();
     data.schedule.lastPayout = now.toISOString();
     const next = new Date(now);
-    next.setDate(next.getDate() + 14);
+    const freq = data.schedule.frequency || 'biweekly';
+    if (freq === 'weekly') next.setDate(next.getDate() + 7);
+    else if (freq === 'monthly') next.setMonth(next.getMonth() + 1);
+    else next.setDate(next.getDate() + 14);
     data.schedule.nextPayout = next.toISOString();
+    saveData(data);
+
+    // Send Telegram notification
+    if (data.telegram.botToken && data.telegram.chatId) {
+      notifyBatchSent(data.telegram.botToken, data.telegram.chatId, batch).catch(() => {});
+    }
   }
-  saveData(data);
   res.redirect('/');
+});
+
+// --- Settings ---
+
+app.get('/settings', requireAuth, (req, res) => {
+  const data = loadData();
+  res.render('settings', {
+    telegram: data.telegram,
+    schedule: data.schedule,
+    success: null,
+    error: null,
+    page: 'settings',
+  });
+});
+
+app.post('/settings/telegram', requireAuth, (req, res) => {
+  const data = loadData();
+  const { botToken, chatId } = req.body;
+  // Only update token if a new one was entered (field is password-masked)
+  const newToken = (botToken || '').trim();
+  if (newToken) data.telegram.botToken = newToken;
+  data.telegram.chatId = (chatId || '').trim() || null;
+  saveData(data);
+  res.render('settings', {
+    telegram: data.telegram,
+    schedule: data.schedule,
+    success: 'Telegram settings saved.',
+    error: null,
+    page: 'settings',
+  });
+});
+
+app.post('/settings/telegram/test', requireAuth, async (req, res) => {
+  const data = loadData();
+  if (!data.telegram.botToken || !data.telegram.chatId) {
+    return res.render('settings', {
+      telegram: data.telegram,
+      schedule: data.schedule,
+      success: null,
+      error: 'Set bot token and chat ID first.',
+      page: 'settings',
+    });
+  }
+
+  const result = await testConnection(data.telegram.botToken, data.telegram.chatId);
+  res.render('settings', {
+    telegram: data.telegram,
+    schedule: data.schedule,
+    success: result.ok ? 'Test message sent. Check Telegram.' : null,
+    error: result.ok ? null : result.error,
+    page: 'settings',
+  });
+});
+
+app.post('/settings/schedule', requireAuth, (req, res) => {
+  const data = loadData();
+  const { frequency } = req.body;
+  if (['weekly', 'biweekly', 'monthly'].includes(frequency)) {
+    data.schedule.frequency = frequency;
+    saveData(data);
+  }
+  res.render('settings', {
+    telegram: data.telegram,
+    schedule: data.schedule,
+    success: 'Schedule updated.',
+    error: null,
+    page: 'settings',
+  });
+});
+
+// --- Price API (for frontend ticker) ---
+
+app.get('/api/price', async (req, res) => {
+  try {
+    const info = await getZECPrice();
+    res.json({ price: info.price, stale: info.stale });
+  } catch {
+    res.status(503).json({ error: 'Price unavailable' });
+  }
 });
 
 app.listen(PORT, () => {

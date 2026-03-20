@@ -148,6 +148,23 @@ nav .logo {
   margin: 0 0.15rem;
 }
 
+/* Price ticker in nav */
+.price-ticker {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--gold);
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  background: rgba(244,183,40,0.08);
+  border: 1px solid rgba(244,183,40,0.15);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  transition: opacity 0.3s;
+}
+
+.price-ticker.loading { opacity: 0.4; }
+
 /* ---- Layout ---- */
 main {
   max-width: 900px;
@@ -177,7 +194,7 @@ h2 {
 /* ---- Stat Cards ---- */
 .stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 0.75rem;
   margin-bottom: 1.5rem;
 }

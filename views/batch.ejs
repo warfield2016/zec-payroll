@@ -47,7 +47,7 @@
 
   <form method="POST" action="/batch/generate">
     <input type="hidden" name="isTest" value="<%= isTest %>">
-    <input type="hidden" name="payments" value="<%= JSON.stringify(preview.map(r => ({ address: r.address, amount: r.zecAmount, label: r.name }))) %>">
+    <input type="hidden" name="payments" value="<%- encodeURIComponent(JSON.stringify(preview.map(r => ({ address: r.address, amount: r.zecAmount, label: r.name })))) %>">
     <button type="submit" class="btn btn-generate">Generate ZIP-321 Payment URI</button>
   </form>
 <% } %>

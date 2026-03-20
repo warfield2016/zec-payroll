@@ -44,6 +44,29 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// --- ZEC price ticker ---
+function updatePriceTicker() {
+  const el = document.getElementById('price-ticker');
+  if (!el) return;
+  el.classList.add('loading');
+  fetch('/api/price')
+    .then(r => r.json())
+    .then(data => {
+      if (data.price) {
+        el.textContent = '$' + data.price.toFixed(2);
+        el.title = 'ZEC/USD' + (data.stale ? ' (cached)' : ' (live)');
+      } else {
+        el.textContent = '--';
+      }
+    })
+    .catch(() => { el.textContent = '--'; })
+    .finally(() => { el.classList.remove('loading'); });
+}
+
+// Fetch price on load and every 60s
+updatePriceTicker();
+setInterval(updatePriceTicker, 60_000);
+
 document.addEventListener('click', (e) => {
   if (!e.target.classList.contains('copy-btn')) return;
   const el = document.getElementById(e.target.dataset.target);
