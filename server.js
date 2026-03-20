@@ -14,7 +14,7 @@ const app = express();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 1_000_000 } });
 
 const DATA_FILE = path.join(__dirname, 'data', 'payroll.enc');
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 const MAX_NAME_LENGTH = 256;
 
 // Session state (single-user app)
